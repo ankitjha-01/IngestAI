@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- NameNode RPC endpoint -->
+  <property>
+    <name>dfs.namenode.rpc-address</name>
+    <value>namenode:9000</value>
+  </property>
+
+  <!-- NameNode UI -->
+  <property>
+    <name>dfs.namenode.http-address</name>
+    <value>0.0.0.0:9870</value>
+  </property>
+
+  <!-- Number of replicas -->
+  <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+  </property>
+
+  <!-- Disable permissions (dev) -->
+  <property>
+    <name>dfs.permissions</name>
+    <value>false</value>
+  </property>
+
+  <!-- Enable REST API -->
+  <property>
+    <name>dfs.webhdfs.enabled</name>
+    <value>true</value>
+  </property>
+
+</configuration>

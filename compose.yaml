@@ -1,39 +1,233 @@
 services:
+
   namenode:
     image: apache/hadoop:3.3.6
     container_name: namenode
     hostname: namenode
-    command: ["hdfs", "namenode"]
+    command: [ "hdfs", "namenode" ]
     ports:
-      - "9870:9870"
-      - "9000:9000"
-    env_file: ./hadoop.env
+      - "9870:9870" # HDFS Web UI
+      - "9000:9000" # HDFS RPC
     environment:
       ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+    volumes:
+      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "hdfs dfsadmin -safemode get 2>/dev/null | grep -q 'Safe mode is OFF'" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     networks:
-      - mif
+      - mifnet
 
   datanode1:
     image: apache/hadoop:3.3.6
     container_name: datanode1
     hostname: datanode1
-    command: ["hdfs", "datanode"]
-    env_file: ./hadoop.env
+    command: [ "hdfs", "datanode" ]
+    volumes:
+      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
     depends_on:
-      - namenode
+      namenode:
+        condition: service_healthy
     networks:
-      - mif
+      - mifnet
 
   datanode2:
     image: apache/hadoop:3.3.6
     container_name: datanode2
     hostname: datanode2
-    command: ["hdfs", "datanode"]
-    env_file: ./hadoop.env
+    command: [ "hdfs", "datanode" ]
+    volumes:
+      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
     depends_on:
-      - namenode
+      namenode:
+        condition: service_healthy
     networks:
-      - mif
+      - mifnet
+
+  resourcemanager:
+    image: apache/hadoop:3.3.6
+    container_name: resourcemanager
+    hostname: resourcemanager
+    command: [ "yarn", "resourcemanager" ]
+    ports:
+      - "8088:8088" # YARN Resource Manager Web UI
+    volumes:
+      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./config/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
+      - ./config/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
+    environment:
+      HADOOP_COMMON_HOME: /opt/hadoop
+      HADOOP_HDFS_HOME: /opt/hadoop
+      HADOOP_YARN_HOME: /opt/hadoop
+      HADOOP_MAPRED_HOME: /opt/hadoop
+    depends_on:
+      namenode:
+        condition: service_healthy
+    networks:
+      - mifnet
+
+  nodemanager1:
+    image: apache/hadoop:3.3.6
+    container_name: nodemanager1
+    hostname: nodemanager1
+    command: [ "yarn", "nodemanager" ]
+    volumes:
+      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./config/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
+      - ./config/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
+    environment:
+      HADOOP_COMMON_HOME: /opt/hadoop
+      HADOOP_HDFS_HOME: /opt/hadoop
+      HADOOP_YARN_HOME: /opt/hadoop
+      HADOOP_MAPRED_HOME: /opt/hadoop
+    depends_on:
+      resourcemanager:
+        condition: service_started
+    networks:
+      - mifnet
+
+  hive-metastore-db:
+    # configuration issues are coming up with new postgres versions
+    image: postgres:10-alpine
+    container_name: hive-metastore-db
+    hostname: hive-metastore-db
+    environment:
+      POSTGRES_DB: metastore
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive123
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - hive_metastore_db:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U hive -d metastore" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - mifnet
+
+  # Packages /opt/tez into a tarball and uploads it to HDFS so HiveServer2 can distribute Tez jars to YARN containers.
+  # Also creates the HDFS directories needed by Hive (warehouse, tmp).
+  tez-init:
+    image: apache/hive:4.0.1
+    container_name: tez-init
+    entrypoint: [ "bash", "-c" ]
+    command:
+      - |
+        cd /opt/tez &&
+        tar -czf /tmp/tez.tar.gz . &&
+        hdfs dfs -mkdir -p /tez &&
+        hdfs dfs -put -f /tmp/tez.tar.gz /tez/tez.tar.gz &&
+        hdfs dfs -mkdir -p /mif/hive/warehouse &&
+        hdfs dfs -mkdir -p /mif/hive/tmp
+        echo 'Tez uploaded to HDFS.'
+    volumes:
+      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+    depends_on:
+      namenode:
+        condition: service_healthy
+    networks:
+      - mifnet
+    restart: "no"
+
+  # Hive Metastore: Thrift metadata service on port 9083.
+  hive-metastore:
+    image: apache/hive:4.0.1
+    container_name: hive-metastore
+    hostname: hive-metastore
+    environment:
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      IS_RESUME: "false"  # Ensures metastore performs full startup checks (including schema readiness)
+      SKIP_SCHEMA_INIT: "false"  # Allow Hive to auto-create metastore SYSTEM tables if missing (via schematool).
+      HIVE_METASTORE_DB_TYPE: postgres
+      HIVE_METASTORE_DB_HOSTNAME: hive-metastore-db
+      HIVE_METASTORE_DB_PORT: 5432
+      HIVE_METASTORE_DB_NAME: metastore
+      HIVE_METASTORE_DB_USERNAME: hive
+      HIVE_METASTORE_DB_PASSWORD: hive123
+    ports:
+      - "9083:9083"
+    volumes:
+      - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./config/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
+      - ./config/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
+      - ./config/tez-site.xml:/opt/hive/conf/tez-site.xml:ro
+      # MOUNT THE POSTGRES DRIVER HERE:
+      - ./lib/postgresql-42.7.3.jar:/opt/hive/lib/postgresql-42.7.3.jar
+    depends_on:
+      namenode:
+        condition: service_healthy
+      hive-metastore-db:
+        condition: service_healthy
+      tez-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/9083' 2>/dev/null && echo OK || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - mifnet
+  
+  # HiveServer2: JDBC endpoint (port 10000) and Web UI (port 10002).
+  hiveserver2:
+    image: apache/hive:4.0.1
+    container_name: hiveserver2
+    hostname: hiveserver2
+    environment:
+      SERVICE_NAME: hiveserver2
+      DB_DRIVER: postgres
+      IS_RESUME: "false" # wait for hive metastore to be healthy
+    ports:
+      - "10000:10000" # JDBC / Beeline
+      - "10002:10002" # HiveServer2 Web UI
+    volumes:
+      - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./config/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
+      - ./config/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
+      - ./config/tez-site.xml:/opt/hive/conf/tez-site.xml:ro
+      - ./lib/postgresql-42.7.3.jar:/opt/hive/lib/postgresql-42.7.3.jar
+    depends_on:
+      hive-metastore:
+        condition: service_healthy
+      resourcemanager:
+        condition: service_started
+      nodemanager1:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/10000' 2>/dev/null && echo OK || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+    networks:
+      - mifnet
+
+volumes:
+  hive_metastore_db:
+    name: mif_hive_metastore_db
 
 networks:
-  mif:
+  mifnet:
+    name: mifnet

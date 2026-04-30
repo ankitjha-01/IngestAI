@@ -1,12 +1,10 @@
 [project]
-name = "mif"
+name = "IngestAI"
 version = "0.1.0"
 description = "Metadata-driven ingestion framework with data quality rules"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastapi>=0.115.12",
     "uvicorn>=0.34.0",
-
     "pandas>=2.2.0",
     "faker>=25.0.0",
 ]

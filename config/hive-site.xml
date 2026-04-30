@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- Warehouse & temp dirs in HDFS -->
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>hdfs://namenode:9000/mif/hive/warehouse</value>
+  </property>
+
+  <property>
+    <name>hive.exec.scratchdir</name>
+    <value>hdfs://namenode:9000/mif/hive/tmp</value>
+  </property>
+
+  <!-- Metastore DB (Postgres) -->
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>org.postgresql.Driver</value>
+  </property>
+
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:postgresql://hive-metastore-db:5432/metastore</value>
+  </property>
+
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hive</value>
+  </property>
+
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>hive123</value>
+  </property>
+
+  <!-- Disable auto schema changes -->
+  <property>
+    <name>datanucleus.schema.autoCreateAll</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>datanucleus.autoCreateSchema</name>
+    <value>false</value>
+  </property>
+  
+  <property>
+    <name>datanucleus.fixedDatastore</name>
+    <value>true</value>
+  </property>
+
+  <!-- Disable schema validation in hive -->
+  <property>
+    <name>datanucleus.schema.validateTables</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>datanucleus.schema.validateColumns</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>datanucleus.schema.validateConstraints</name>
+    <value>false</value>
+  </property>
+
+  <!-- Fail if schema is missing/wrong -->
+  <property>
+    <name>hive.metastore.schema.verification</name>
+    <value>true</value>
+  </property>
+
+  <!-- Metastore service endpoint -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://hive-metastore:9083</value>
+  </property>
+
+  <!-- Disable auth for notifications (dev) -->
+  <property>
+    <name>hive.metastore.event.db.notification.api.auth</name>
+    <value>false</value>
+  </property>
+
+  <!-- Enable ACID transactions -->
+  <property>
+    <name>hive.support.concurrency</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>hive.txn.manager</name>
+    <value>org.apache.hadoop.hive.ql.lockmgr.DbTxnManager</value>
+  </property>
+
+  <!-- Disable compaction (dev) -->
+  <property>
+    <name>hive.compactor.initiator.on</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>hive.compactor.worker.threads</name>
+    <value>0</value>
+  </property>
+
+  <!-- Use Tez execution engine -->
+  <property>
+    <name>hive.execution.engine</name>
+    <value>tez</value>
+  </property>
+
+  <!-- Query optimizations -->
+  <property>
+    <name>hive.vectorized.execution.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>hive.vectorized.execution.reduce.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>hive.cbo.enable</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>hive.compute.query.using.stats</name>
+    <value>true</value>
+  </property>
+
+  <!-- HiveServer2 settings -->
+  <property>
+    <name>hive.server2.authentication</name>
+    <value>NONE</value>
+  </property>
+
+  <!-- Disable user impersonation -->
+  <property>
+    <name>hive.server2.enable.doAs</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>hive.server2.thrift.bind.host</name>
+    <value>0.0.0.0</value>
+  </property>
+
+</configuration>

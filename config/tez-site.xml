@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- Location of Tez libs in HDFS -->
+  <property>
+    <name>tez.lib.uris</name>
+    <value>hdfs://namenode:9000/tez/tez.tar.gz</value>
+  </property>
+
+  <!-- Use cluster Hadoop libraries -->
+  <property>
+    <name>tez.use.cluster.hadoop-libs</name>
+    <value>true</value>
+  </property>
+
+  <!-- Classpath priority (false = system first) -->
+  <property>
+    <name>tez.user.classpath.first</name>
+    <value>false</value>
+  </property>
+
+  <!-- Memory for Tez ApplicationMaster -->
+  <property>
+    <name>tez.am.resource.memory.mb</name>
+    <value>1024</value>
+  </property>
+
+  <!-- Memory per Tez task -->
+  <property>
+    <name>tez.task.resource.memory.mb</name>
+    <value>1024</value>
+  </property>
+
+</configuration>

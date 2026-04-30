@@ -24,8 +24,6 @@ __pycache__/
 # OS Files
 .DS_Store
 
-# Data
-data
-
-# Drivers
-lib/
+# Git
+.git
+.gitignore
