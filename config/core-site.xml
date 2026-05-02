@@ -4,7 +4,7 @@
   <!-- Default HDFS namenode URI -->
   <property>
     <name>fs.defaultFS</name>
-    <value>hdfs://namenode:9000</value>
+    <value>hdfs://master-node:9000</value>
   </property>
 
 </configuration>

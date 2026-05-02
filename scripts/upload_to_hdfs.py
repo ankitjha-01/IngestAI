@@ -7,7 +7,7 @@ Creates the full HDFS directory tree before uploading:
   /mif/hive/         — Hive metastore directories
   /mif/rejected/     — rows that fail DQ checks
 
-Each file is copied into the namenode container first (docker cp),
+Each file is copied into the master-node container first (docker cp),
 then moved into HDFS (hdfs dfs -put). This avoids needing the
 HDFS client installed locally.
 """
@@ -16,13 +16,24 @@ import os
 import subprocess
 from datetime import datetime
 from typing import Optional
+from pathlib import Path
+import sys
 
 # Config -> will move to a .env file later
-
-NAMENODE_CONTAINER = "namenode"
+MASTERNODE_CONTAINER = "master-node"
 
 PROCESSING_DATE = datetime.now()
-DATE_STR = PROCESSING_DATE.strftime("%Y-%m-%d")
+
+# Allow passing a date argument (e.g., python upload_to_hdfs.py 2026-01-01)
+if len(sys.argv) > 1:
+    DATE_STR = sys.argv[1]
+else:
+    PROCESSING_DATE = datetime.now()
+    DATE_STR = PROCESSING_DATE.strftime("%Y-%m-%d")
+
+print(f"Running pipeline for date: {DATE_STR}")
+
+
 # All HDFS directories to create upfront
 HDFS_DIRS = [
     # Raw (landing zone for incoming CSV files)
@@ -48,8 +59,8 @@ HDFS_DIRS = [
 
 
 def hdfs_cmd(*args: str, check: bool = False) -> subprocess.CompletedProcess:
-    """Run an HDFS command inside the namenode container."""
-    cmd = ["docker", "exec", NAMENODE_CONTAINER, "hdfs", "dfs", *args]
+    """Run an HDFS command inside the master-node container."""
+    cmd = ["docker", "exec", MASTERNODE_CONTAINER, "hdfs", "dfs", *args]
     return subprocess.run(cmd, capture_output=True, text=True, check=check)
 
 
@@ -73,9 +84,9 @@ def hdfs_size(hdfs_path: str) -> Optional[str]:
 
 
 def docker_cp(local_path: str, container_tmp: str) -> None:
-    """Copy a local file into the namenode container."""
+    """Copy a local file into the master-node container."""
     subprocess.run(
-        ["docker", "cp", local_path, f"{NAMENODE_CONTAINER}:{container_tmp}"],
+        ["docker", "cp", local_path, f"{MASTERNODE_CONTAINER}:{container_tmp}"],
         check=True,
         capture_output=True,
     )
@@ -97,9 +108,14 @@ def upload_partitioned_folder(local_base: str, hdfs_base: str) -> None:
     Upload all files under:
     data/raw/<source>/processing_date=YYYY-MM-DD/
     """
-    local_path = os.path.join(local_base, f"processing_date={DATE_STR}")
+    # 1. Dynamically find the project root (one folder up from where this script lives)
+    project_root = Path(__file__).resolve().parent.parent 
+    
+    # 2. Build the absolute path to the data folder
+    local_path = project_root / local_base / f"processing_date={DATE_STR}"
 
-    if not os.path.exists(local_path):
+    # 3. Check if the absolute path exists
+    if not local_path.exists():
         print(f"  SKIP {local_base} — no data for {DATE_STR}")
         return
 
@@ -107,10 +123,10 @@ def upload_partitioned_folder(local_base: str, hdfs_base: str) -> None:
     hdfs_mkdir(hdfs_dir)
 
     for filename in os.listdir(local_path):
-        full_local_path = os.path.join(local_path, filename)
+        full_local_path = str(local_path / filename)  # Convert back to string for Docker
         container_tmp = f"/tmp/{filename}"
 
-        # Step 1: copy from host into namenode container
+        # Step 1: copy from host into master-node container
         docker_cp(full_local_path, container_tmp)
 
         # Step 2: move from container into HDFS
@@ -121,7 +137,6 @@ def upload_partitioned_folder(local_base: str, hdfs_base: str) -> None:
         size = hdfs_size(hdfs_file)
 
         print(f"  {filename:<50} {size or '?':>6}")
-
 
 def upload_all() -> None:
     print("Uploading raw files to HDFS...")

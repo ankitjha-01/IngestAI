@@ -1,101 +1,79 @@
 services:
 
-  namenode:
+  master-node:
     image: apache/hadoop:3.3.6
-    container_name: namenode
-    hostname: namenode
-    command: [ "hdfs", "namenode" ]
+    container_name: master-node
+    hostname: master-node
+    # Start HDFS in the background, YARN in the foreground to keep the container alive
+    command: bash -c "hdfs --daemon start namenode && yarn resourcemanager"
     ports:
       - "9870:9870" # HDFS Web UI
       - "9000:9000" # HDFS RPC
+      - "8088:8088" # YARN Resource Manager Web UI
     environment:
       ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+      HADOOP_COMMON_HOME: /opt/hadoop
+      HADOOP_HDFS_HOME: /opt/hadoop
+      HADOOP_YARN_HOME: /opt/hadoop
+      HADOOP_MAPRED_HOME: /opt/hadoop
     volumes:
       - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
       - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./config/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
+      - ./config/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
     healthcheck:
       test: [ "CMD-SHELL", "hdfs dfsadmin -safemode get 2>/dev/null | grep -q 'Safe mode is OFF'" ]
       interval: 15s
       timeout: 10s
       retries: 10
-      start_period: 30s
+      start_period: 45s
     networks:
       - mifnet
 
-  datanode1:
+  worker-node1:
     image: apache/hadoop:3.3.6
-    container_name: datanode1
-    hostname: datanode1
-    command: [ "hdfs", "datanode" ]
-    volumes:
-      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
-      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
-    depends_on:
-      namenode:
-        condition: service_healthy
-    networks:
-      - mifnet
-
-  datanode2:
-    image: apache/hadoop:3.3.6
-    container_name: datanode2
-    hostname: datanode2
-    command: [ "hdfs", "datanode" ]
-    volumes:
-      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
-      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
-    depends_on:
-      namenode:
-        condition: service_healthy
-    networks:
-      - mifnet
-
-  resourcemanager:
-    image: apache/hadoop:3.3.6
-    container_name: resourcemanager
-    hostname: resourcemanager
-    command: [ "yarn", "resourcemanager" ]
-    ports:
-      - "8088:8088" # YARN Resource Manager Web UI
-    volumes:
-      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
-      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
-      - ./config/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
-      - ./config/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
+    container_name: worker-node1
+    hostname: worker-node1
+    # Start HDFS DataNode in background, YARN NodeManager in foreground
+    command: bash -c "hdfs --daemon start datanode && yarn nodemanager"
     environment:
       HADOOP_COMMON_HOME: /opt/hadoop
       HADOOP_HDFS_HOME: /opt/hadoop
       HADOOP_YARN_HOME: /opt/hadoop
       HADOOP_MAPRED_HOME: /opt/hadoop
-    depends_on:
-      namenode:
-        condition: service_healthy
-    networks:
-      - mifnet
-
-  nodemanager1:
-    image: apache/hadoop:3.3.6
-    container_name: nodemanager1
-    hostname: nodemanager1
-    command: [ "yarn", "nodemanager" ]
     volumes:
       - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
       - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
       - ./config/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
       - ./config/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
+    depends_on:
+      master-node:
+        condition: service_healthy
+    networks:
+      - mifnet
+
+  worker-node2:
+    image: apache/hadoop:3.3.6
+    container_name: worker-node2
+    hostname: worker-node2
+    command: bash -c "hdfs --daemon start datanode && yarn nodemanager"
     environment:
       HADOOP_COMMON_HOME: /opt/hadoop
       HADOOP_HDFS_HOME: /opt/hadoop
       HADOOP_YARN_HOME: /opt/hadoop
       HADOOP_MAPRED_HOME: /opt/hadoop
+    volumes:
+      - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./config/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
+      - ./config/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
     depends_on:
-      resourcemanager:
-        condition: service_started
+      master-node:
+        condition: service_healthy
     networks:
       - mifnet
 
   hive-metastore-db:
-    # configuration issues are coming up with new postgres versions
     image: postgres:10-alpine
     container_name: hive-metastore-db
     hostname: hive-metastore-db
@@ -118,8 +96,6 @@ services:
     networks:
       - mifnet
 
-  # Packages /opt/tez into a tarball and uploads it to HDFS so HiveServer2 can distribute Tez jars to YARN containers.
-  # Also creates the HDFS directories needed by Hive (warehouse, tmp).
   tez-init:
     image: apache/hive:4.0.1
     container_name: tez-init
@@ -137,13 +113,12 @@ services:
       - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
       - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
     depends_on:
-      namenode:
+      master-node:
         condition: service_healthy
     networks:
       - mifnet
     restart: "no"
 
-  # Hive Metastore: Thrift metadata service on port 9083.
   hive-metastore:
     image: apache/hive:4.0.1
     container_name: hive-metastore
@@ -151,8 +126,8 @@ services:
     environment:
       SERVICE_NAME: metastore
       DB_DRIVER: postgres
-      IS_RESUME: "false"  # Ensures metastore performs full startup checks (including schema readiness)
-      SKIP_SCHEMA_INIT: "false"  # Allow Hive to auto-create metastore SYSTEM tables if missing (via schematool).
+      IS_RESUME: "false" 
+      SKIP_SCHEMA_INIT: "false" 
       HIVE_METASTORE_DB_TYPE: postgres
       HIVE_METASTORE_DB_HOSTNAME: hive-metastore-db
       HIVE_METASTORE_DB_PORT: 5432
@@ -168,10 +143,9 @@ services:
       - ./config/yarn-site.xml:/opt/hadoop/etc/hadoop/yarn-site.xml:ro
       - ./config/mapred-site.xml:/opt/hadoop/etc/hadoop/mapred-site.xml:ro
       - ./config/tez-site.xml:/opt/hive/conf/tez-site.xml:ro
-      # MOUNT THE POSTGRES DRIVER HERE:
       - ./lib/postgresql-42.7.3.jar:/opt/hive/lib/postgresql-42.7.3.jar
     depends_on:
-      namenode:
+      master-node:
         condition: service_healthy
       hive-metastore-db:
         condition: service_healthy
@@ -187,7 +161,6 @@ services:
     networks:
       - mifnet
   
-  # HiveServer2: JDBC endpoint (port 10000) and Web UI (port 10002).
   hiveserver2:
     image: apache/hive:4.0.1
     container_name: hiveserver2
@@ -195,10 +168,10 @@ services:
     environment:
       SERVICE_NAME: hiveserver2
       DB_DRIVER: postgres
-      IS_RESUME: "false" # wait for hive metastore to be healthy
+      IS_RESUME: "false" 
     ports:
-      - "10000:10000" # JDBC / Beeline
-      - "10002:10002" # HiveServer2 Web UI
+      - "10000:10000" 
+      - "10002:10002" 
     volumes:
       - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
       - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
@@ -210,9 +183,7 @@ services:
     depends_on:
       hive-metastore:
         condition: service_healthy
-      resourcemanager:
-        condition: service_started
-      nodemanager1:
+      worker-node1:
         condition: service_started
     healthcheck:
       test: [ "CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/10000' 2>/dev/null && echo OK || exit 1" ]

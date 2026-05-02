@@ -4,25 +4,25 @@
   <!-- ResourceManager host -->
   <property>
     <name>yarn.resourcemanager.hostname</name>
-    <value>resourcemanager</value>
+    <value>master-node</value>
   </property>
 
   <!-- RM RPC endpoint -->
   <property>
     <name>yarn.resourcemanager.address</name>
-    <value>resourcemanager:8032</value>
+    <value>master-node:8032</value>
   </property>
 
   <!-- Scheduler endpoint -->
   <property>
     <name>yarn.resourcemanager.scheduler.address</name>
-    <value>resourcemanager:8030</value>
+    <value>master-node:8030</value>
   </property>
 
   <!-- NodeManager → RM heartbeat -->
   <property>
     <name>yarn.resourcemanager.resource-tracker.address</name>
-    <value>resourcemanager:8031</value>
+    <value>master-node:8031</value>
   </property>
 
   <!-- Enable MR shuffle service -->
@@ -43,25 +43,25 @@
     <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value>
   </property>
 
-  <!-- Total memory per node -->
+  <!-- Total memory per worker node -->
   <property>
     <name>yarn.nodemanager.resource.memory-mb</name>
     <value>2048</value>
   </property>
 
-  <!-- Total CPU cores per node -->
+  <!-- Total CPU cores per worker node -->
   <property>
     <name>yarn.nodemanager.resource.cpu-vcores</name>
     <value>4</value>
   </property>
 
-  <!-- Min container size -->
+  <!-- Min container size for Hive job -->
   <property>
     <name>yarn.scheduler.minimum-allocation-mb</name>
     <value>512</value>
   </property>
 
-  <!-- Max container size -->
+  <!-- Max container size for Hive job -->
   <property>
     <name>yarn.scheduler.maximum-allocation-mb</name>
     <value>2048</value>

@@ -4,7 +4,7 @@
   <!-- Location of Tez libs in HDFS -->
   <property>
     <name>tez.lib.uris</name>
-    <value>hdfs://namenode:9000/tez/tez.tar.gz</value>
+    <value>hdfs://master-node:9000/tez/tez.tar.gz</value>
   </property>
 
   <!-- Use cluster Hadoop libraries -->
@@ -22,13 +22,13 @@
   <!-- Memory for Tez ApplicationMaster -->
   <property>
     <name>tez.am.resource.memory.mb</name>
-    <value>1024</value>
+    <value>512</value>
   </property>
 
   <!-- Memory per Tez task -->
   <property>
     <name>tez.task.resource.memory.mb</name>
-    <value>1024</value>
+    <value>512</value>
   </property>
 
 </configuration>

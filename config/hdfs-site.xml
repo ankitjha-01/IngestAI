@@ -4,7 +4,7 @@
   <!-- NameNode RPC endpoint -->
   <property>
     <name>dfs.namenode.rpc-address</name>
-    <value>namenode:9000</value>
+    <value>master-node:9000</value>
   </property>
 
   <!-- NameNode UI -->
