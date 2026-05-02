@@ -11,7 +11,7 @@ The Python-based ingestion framework, IngestAI, is a work in progress and is cur
 
 The platform is engineered to handle complex data lifecycles with the following core capabilities:
 *   **Distributed Storage**: Scalable HDFS cluster configured with two DataNodes. The system operates with a replication factor of 2 to ensure fault-tolerant data storage.
-*   **Resource Management**: Global resource orchestration via YARN, allocating 4096 MB of memory and 4 cores per node.
+*   **Resource Management**: Global resource orchestration via YARN, allocating 2048 MB of memory and 4 cores per node.
 *   **High-Performance Execution**: Integration of Apache Tez as the primary execution engine for low-latency DAG processing.
 *   **Transactional Metadata**: Full ACID support enabled through Apache Hive 4.0 using `DbTxnManager`. Metadata is backed by a persistent PostgreSQL database.
 *   **Optimized Querying**: Hive is configured with Vectorized Execution and a Cost-Based Optimizer (CBO) enabled for maximum performance.
@@ -20,14 +20,17 @@ The platform is engineered to handle complex data lifecycles with the following 
 
 ```text
 .
-├── configs/                 # XML configurations (core-site, hdfs-site, hive-site, etc.)
-├── data/                    # Local raw/processed datasets for ingestion (mounted into containers)
+├── configs/                 # XML configs (core-site, hdfs-site, hive-site, etc.)
+├── data/                    # Local datasets for ingestion (mounted into containers)
+├── hive_schema/             # Hive DDLs (config, DQ, silver, lineage tables)
 ├── lib/                     # External dependencies (e.g., PostgreSQL JDBC driver)
-├── scripts/                 # [IN DEVELOPMENT] IngestAI Python/Bash automation scripts
+├── scripts/                 # [IN DEVELOPMENT] IngestAI automation scripts
 ├── test/                    # End-to-end integration tests
-├── docker-compose.yml       # Orchestrates HDFS, YARN, Hive, Tez, and Postgres
-├── ARCHITECTURE.md          # Detailed system design and execution flow
-└── pyproject.toml           # Python project configuration and dependency management
+├── docker-compose.yml       # Orchestrates HDFS, YARN, Hive, Tez, Postgres
+├── ARCHITECTURE.md          # System design and execution flow
+├── pyproject.toml           # Python config and dependencies
+└── .pre-commit-config.yaml  # Pre-commit hooks (linting, formatting)
+```
 
 ## 📋 Prerequisites
 
@@ -76,9 +79,18 @@ This suite validates the connectivity between **HDFS**, **YARN**, and **HiveServ
 
 ---
 
-## 📂 Data Ingestion Framework [Development Phase]
+## 📂 Data Ingestion Framework (Development Phase)
 
-> ⚠️ **Notice:** The **IngestAI** metadata-driven ingestion framework within the `scripts/` directory is currently in active development. It is an experimental toolkit leveraging `pandas`, `faker`, and `uvicorn` to handle synthetic data generation, automated HDFS namespace formatting, and cluster verification. Detailed documentation for individual scripts will be published once the framework stabilizes.
+> ⚠️ **Work in Progress:** The **IngestAI** metadata-driven ingestion framework (under `scripts/` and `hive_schema/`) is currently under active development.
+
+This module serves as an experimental foundation for building a configurable ingestion system, including:
+
+* Synthetic data generation using `pandas` and `faker`
+* Automated HDFS path and namespace setup
+* Cluster readiness and validation utilities
+
+The framework is evolving, and interfaces may change.
+Detailed documentation for individual components will be added once the system stabilizes.
 
 ---
 

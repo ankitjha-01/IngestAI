@@ -19,9 +19,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-# Config -> will move to a .env file later
-MASTERNODE_CONTAINER = "master-node"
+# Config -> will move to a .env file later***
 
+MASTERNODE_CONTAINER = "master-node"
 PROCESSING_DATE = datetime.now()
 
 # Allow passing a date argument (e.g., python upload_to_hdfs.py 2026-01-01)

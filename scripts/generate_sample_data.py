@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from faker import Faker
 
-# Config -> will move to a .env file later
+# Config -> will move to a .env file later***
 
 SEED = 42
 OUTPUT_DIR = "data/raw"
@@ -119,7 +119,7 @@ def generate_merchant_updates(n: int = 5_000) -> pd.DataFrame:
         "retail",
         "online",
     ]
-    VALID_COUNTRIES = ["US", "IN", "UK", "FR", "SG"]
+    VALID_COUNTRIES = ["US", "IN"]
 
     def generate_row(i: int):
         return {
