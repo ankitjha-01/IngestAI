@@ -25,7 +25,7 @@ __pycache__/
 .DS_Store
 
 # Data
-data
+data/
 
 # Drivers
 lib/

@@ -4,12 +4,12 @@
   <!-- Warehouse & temp dirs in HDFS -->
   <property>
     <name>hive.metastore.warehouse.dir</name>
-    <value>hdfs://namenode:9000/mif/hive/warehouse</value>
+    <value>hdfs://master-node:9000/mif/hive/warehouse</value>
   </property>
 
   <property>
     <name>hive.exec.scratchdir</name>
-    <value>hdfs://namenode:9000/mif/hive/tmp</value>
+    <value>hdfs://master-node:9000/mif/hive/tmp</value>
   </property>
 
   <!-- Metastore DB (Postgres) -->
