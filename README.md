@@ -2,6 +2,9 @@
 
 This repository provides a containerized Big Data environment built around the Apache Hadoop ecosystem. It serves as a practical, foundational workspace for exploring scalable data pipelines, managing distributed metadata, and experimenting with transactional processing. 
 
+For a detailed breakdown of the cluster architecture and execution flow, see:  
+**[Architecture Overview](./ARCHITECTURE.md)**
+
 The Python-based ingestion framework, IngestAI, is a work in progress and is currently being actively developed alongside the core infrastructure.
 
 ## 🚀 System Capabilities
@@ -18,12 +21,13 @@ The platform is engineered to handle complex data lifecycles with the following 
 ```text
 .
 ├── configs/                 # XML configurations (core-site, hdfs-site, hive-site, etc.)
+├── data/                    # Local raw/processed datasets for ingestion (mounted into containers)
 ├── lib/                     # External dependencies (e.g., PostgreSQL JDBC driver)
 ├── scripts/                 # [IN DEVELOPMENT] IngestAI Python/Bash automation scripts
 ├── test/                    # End-to-end integration tests
 ├── docker-compose.yml       # Orchestrates HDFS, YARN, Hive, Tez, and Postgres
+├── ARCHITECTURE.md          # Detailed system design and execution flow
 └── pyproject.toml           # Python project configuration and dependency management
-```
 
 ## 📋 Prerequisites
 

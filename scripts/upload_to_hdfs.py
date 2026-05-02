@@ -14,10 +14,10 @@ HDFS client installed locally.
 
 import os
 import subprocess
-from datetime import datetime
-from typing import Optional
-from pathlib import Path
 import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
 # Config -> will move to a .env file later
 MASTERNODE_CONTAINER = "master-node"
@@ -109,8 +109,8 @@ def upload_partitioned_folder(local_base: str, hdfs_base: str) -> None:
     data/raw/<source>/processing_date=YYYY-MM-DD/
     """
     # 1. Dynamically find the project root (one folder up from where this script lives)
-    project_root = Path(__file__).resolve().parent.parent 
-    
+    project_root = Path(__file__).resolve().parent.parent
+
     # 2. Build the absolute path to the data folder
     local_path = project_root / local_base / f"processing_date={DATE_STR}"
 
@@ -137,6 +137,7 @@ def upload_partitioned_folder(local_base: str, hdfs_base: str) -> None:
         size = hdfs_size(hdfs_file)
 
         print(f"  {filename:<50} {size or '?':>6}")
+
 
 def upload_all() -> None:
     print("Uploading raw files to HDFS...")

@@ -9,31 +9,37 @@ SQL_FILE = f"{BASE_DIR}/test_hive.sql"
 HDFS_DIR = "/mif/unified_test/raw"
 DB_NAME = "mif_pipeline_test"
 
+
 def run_cmd(cmd, step_name, show_out=False):
     print(f"[{step_name}]...")
     try:
         res = subprocess.run(cmd, shell=True, check=True, text=True, capture_output=True)
-        if show_out and res.stdout: print(res.stdout.strip())
+        if show_out and res.stdout:
+            print(res.stdout.strip())
         return res.stdout
     except subprocess.CalledProcessError as e:
         print(f"\nFAILED: {step_name}\n{e.stderr.strip() or e.stdout.strip()}")
         sys.exit(1)
 
+
 def cleanup():
     print("\n[4/4] Cleaning up test artifacts...")
     devnull = subprocess.DEVNULL
     cmds = [
-        f"docker exec master-node hdfs dfs -rm -r -skipTrash /mif/unified_test",
-        f"docker exec hiveserver2 beeline -u jdbc:hive2://localhost:10000 -n hive -e 'DROP DATABASE IF EXISTS {DB_NAME} CASCADE;'",
+        "docker exec master-node hdfs dfs -rm -r -skipTrash /mif/unified_test",
+        f"docker exec hiveserver2 beeline -u jdbc:hive2://localhost:10000 -n hive \
+        -e 'DROP DATABASE IF EXISTS {DB_NAME} CASCADE;'",
         "docker exec master-node rm -f /tmp/test_data.csv",
-        "docker exec hiveserver2 rm -f /tmp/test_hive.sql"
+        "docker exec hiveserver2 rm -f /tmp/test_hive.sql",
     ]
     for cmd in cmds:
         subprocess.run(cmd, shell=True, stderr=devnull, stdout=devnull)
-    
+
     for f in [CSV_FILE, SQL_FILE]:
-        if os.path.exists(f): os.remove(f)
+        if os.path.exists(f):
+            os.remove(f)
     print("Cleanup complete.")
+
 
 def main():
     try:
@@ -82,13 +88,21 @@ def main():
         SELECT '>>> 3: AFTER DELETE <<<' AS status;
         SELECT * FROM emp_acid ORDER BY emp_id;
         """
-        
-        with open(SQL_FILE, "w") as f: f.write(sql_content)
+
+        with open(SQL_FILE, "w") as f:
+            f.write(sql_content)
         run_cmd(f"docker cp {SQL_FILE} hiveserver2:/tmp/test_hive.sql", "Copy SQL")
-        run_cmd("docker exec hiveserver2 beeline -u jdbc:hive2://localhost:10000 -n hive -f /tmp/test_hive.sql --showHeader=true --outputformat=dsv --delimiterForDSV=' | '", "Hive Jobs", True)
+        run_cmd(
+            "docker exec hiveserver2 beeline -u jdbc:hive2://localhost:10000 -n hive \
+            -f /tmp/test_hive.sql --showHeader=true --outputformat=dsv --delimiterForDSV=' | '",
+            "Hive Jobs",
+            True,
+        )
 
     finally:
         cleanup()
+
+
 if __name__ == "__main__":
     start = time.time()
     main()
